@@ -106,7 +106,7 @@ class OrderController extends Controller
             Mail::to($request->email)->send(new OrderPlaced($order));
             
             // To specific recipient requested
-            Mail::to('jjjooo2747x@gmail.com')->send(new OrderPlaced($order));
+            Mail::to('trqt01646708@gmail.com')->send(new OrderPlaced($order));
             
             // To site admin
             $admin = User::whereHas('roles', function($q){ $q->where('name', 'admin'); })->first();
