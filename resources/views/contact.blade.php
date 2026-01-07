@@ -15,8 +15,5 @@
         <input type="email" name="email" placeholder="Email">
         <button type="submit">Submit</button>
     </form>
-    <h2>Thông tin người dùng</h2>
-    <p><strong>Tên: </strong>{{ $name }} </p>
-    <p><strong>Email: </strong>{{ $email }} </p>
 </body>
 </html>

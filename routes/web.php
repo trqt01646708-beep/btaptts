@@ -10,6 +10,11 @@ Route::prefix('/contact')->group(function () {
    Route::post('/', function (Request $request) {
     $name=$request->input('name');
     $email=$request->input('email');
-    return view('contact', compact('name', 'email'));
+    return "
+    <h2>Thông tin người dùng</h2>
+    <p><strong>Tên: </strong> $name </p>
+    <p><strong>Email: </strong> $email  </p>
+    ";
+    
    })->name('contact.submit');
 });
