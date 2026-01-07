@@ -1,34 +1,15 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
-Route::get('/user/{id}', function ($id) {
-    $users = [
-		[
-			'id' => 1,
-			'name' => 'Trần Văn A',
-			'gender' => 'Nam'
-		],
-		[
-			'id' => 2,
-			'name' => 'Trần Văn B', 
-			'gender' => 'Nữ'
-		],
-        [
-            'id' => 3,
-            'name' => 'Trần Văn C', 
-            'gender' => 'Nam'
-        ]
-    ];
-
-    // Tìm user theo id
-    $user = null;
-    foreach ($users as $u) {
-        if ($u['id'] == $id) {
-            $user = $u;
-            break;
-        }
-    }
-
-    return view('user', compact('user'));
+Route::prefix('/contact')->group(function () {
+   Route::get('/', function () {
+    return view('contact');
+   })->name('contact.form');
+   Route::post('/', function (Request $request) {
+    $name=$request->input('name');
+    $email=$request->input('email');
+    return view('contact', compact('name', 'email'));
+   })->name('contact.submit');
 });
