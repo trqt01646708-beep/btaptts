@@ -2,19 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Role;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Permission extends Model
 {
-    /** @use HasFactory<\Database\Factories\PermissionFactory> */
     use HasFactory;
 
-    protected $fillable = ['name', 'display_name'];
+    protected $fillable = [
+        'name',
+        'display_name',
+        'description',
+    ];
 
+    // Relationships
     public function roles()
     {
-        return $this->belongsToMany(Role::class);
+        return $this->belongsToMany(Role::class, 'permission_role');
     }
 }

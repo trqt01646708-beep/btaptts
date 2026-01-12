@@ -1,83 +1,122 @@
-@extends('layouts.user')
-
-@section('title', 'Chi tiết đơn hàng')
+@extends('frontend.layouts.app')
 
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-md-10">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Chi tiết đơn hàng #{{ $order->id }}</h2>
-            <a href="{{ route('orders.history') }}" class="btn btn-outline-secondary rounded-pill"><i class="fas fa-arrow-left me-1"></i> Quay lại lịch sử</a>
-        </div>
-        
-        <div class="row g-4">
-            <div class="col-md-8">
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-white fw-bold py-3">Sản phẩm đã mua</div>
-                    <div class="card-body p-0">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light">
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Chi tiết đơn hàng</h1>
+                <a href="{{ route('orders.history') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </a>
+            </div>
+
+            <!-- Thông tin đơn hàng -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Thông tin đơn hàng</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Mã đơn hàng:</strong> {{ $order->order_number }}</p>
+                            <p><strong>Ngày đặt:</strong> {{ $order->created_at->format('d/m/Y H:i') }}</p>
+                            <p><strong>Tên khách hàng:</strong> {{ $order->customer_name }}</p>
+                            <p><strong>Email:</strong> {{ $order->customer_email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Số điện thoại:</strong> {{ $order->customer_phone }}</p>
+                            <p><strong>Địa chỉ giao hàng:</strong> {{ $order->shipping_address }}</p>
+                            @php
+                                $statusClass = [
+                                    'pending' => 'warning',
+                                    'confirmed' => 'info',
+                                    'shipping' => 'primary',
+                                    'delivered' => 'success',
+                                    'cancelled' => 'danger'
+                                ][$order->status] ?? 'secondary';
+                                
+                                $statusLabel = [
+                                    'pending' => 'Chờ xác nhận',
+                                    'confirmed' => 'Đã xác nhận',
+                                    'shipping' => 'Đang giao',
+                                    'delivered' => 'Đã giao',
+                                    'cancelled' => 'Đã hủy'
+                                ][$order->status] ?? $order->status;
+                            @endphp
+                            <p><strong>Trạng thái:</strong> <span class="badge bg-{{ $statusClass }}">{{ $statusLabel }}</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danh sách sản phẩm -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Danh sách sản phẩm</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
                                 <tr>
-                                    <th class="ps-4">Sản phẩm</th>
+                                    <th>Sản phẩm</th>
                                     <th>Giá</th>
                                     <th>Số lượng</th>
-                                    <th class="text-end pe-4">Thành tiền</th>
+                                    <th>Thành tiền</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($order->orderItems as $item)
-                                <tr>
-                                    <td class="ps-4">
-                                        <div class="d-flex align-items-center">
-                                            @if($item->product && $item->product->image)
-                                                <img src="{{ asset($item->product->image) }}" width="50" class="rounded me-3">
-                                            @endif
-                                            <span>{{ $item->product_name }}</span>
-                                        </div>
-                                    </td>
-                                    <td>{{ number_format($item->price) }}đ</td>
-                                    <td class="text-center">{{ $item->quantity }}</td>
-                                    <td class="text-end pe-4 fw-bold">{{ number_format($item->price * $item->quantity) }}đ</td>
-                                </tr>
+                                @foreach($order->items as $item)
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                @if($item->product_image)
+                                                    <img src="{{ asset('storage/' . $item->product_image) }}" alt="{{ $item->product_name }}" style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px;">
+                                                @endif
+                                                <div>
+                                                    <p class="mb-0"><strong>{{ $item->product_name }}</strong></p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ number_format($item->price, 0, ',', '.') }}₫</td>
+                                        <td>{{ $item->quantity }}</td>
+                                        <td>{{ number_format($item->total, 0, ',', '.') }}₫</td>
+                                    </tr>
                                 @endforeach
                             </tbody>
-                            <tfoot class="bg-light">
-                                <tr>
-                                    <td colspan="3" class="text-end fw-bold py-3">Tổng giá trị đơn hàng:</td>
-                                    <td class="text-end pe-4 fw-bold py-3 text-primary h4">{{ number_format($order->total_amount) }}đ</td>
-                                </tr>
-                            </tfoot>
                         </table>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-white fw-bold py-3">Trạng thái đơn hàng</div>
-                    <div class="card-body text-center py-4">
-                        @php
-                            $statusMap = [
-                                'pending' => ['class' => 'bg-warning text-dark', 'icon' => 'fa-clock', 'label' => 'Đang chờ'],
-                                'processing' => ['class' => 'bg-info', 'icon' => 'fa-spinner fa-spin', 'label' => 'Đang xử lý'],
-                                'shipped' => ['class' => 'bg-primary', 'icon' => 'fa-truck', 'label' => 'Đang giao'],
-                                'delivered' => ['class' => 'bg-success', 'icon' => 'fa-check-circle', 'label' => 'Đã giao'],
-                                'cancelled' => ['class' => 'bg-danger', 'icon' => 'fa-times-circle', 'label' => 'Đã hủy']
-                            ];
-                            $statusInfo = $statusMap[$order->status] ?? ['class' => 'bg-secondary', 'icon' => 'fa-question-circle', 'label' => $order->status];
-                        @endphp
-                        <div class="display-4 text-{{ str_replace('bg-', '', explode(' ', $statusInfo['class'])[0]) }} mb-2">
-                            <i class="fas {{ $statusInfo['icon'] }}"></i>
-                        </div>
-                        <h4 class="fw-bold">{{ $statusInfo['label'] }}</h4>
-                        <p class="text-muted small">Cập nhật lúc: {{ $order->updated_at->format('H:i, d/m/Y') }}</p>
-                    </div>
-                </div>
 
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white fw-bold py-3">Thông tin khách hàng</div>
-                    <div class="card-body">
-                        <p class="mb-1"><strong>Họ tên:</strong> {{ $order->user->name }}</p>
-                        <p class="mb-0"><strong>Email:</strong> {{ $order->user->email }}</p>
+            <!-- Tóm tắt thanh toán -->
+            <div class="row">
+                <div class="col-md-6 offset-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Tạm tính:</span>
+                                <span>{{ number_format($order->subtotal, 0, ',', '.') }}₫</span>
+                            </div>
+                            @if($order->shipping_fee > 0)
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Phí vận chuyển:</span>
+                                    <span>{{ number_format($order->shipping_fee, 0, ',', '.') }}₫</span>
+                                </div>
+                            @endif
+                            @if($order->discount > 0)
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Giảm giá:</span>
+                                    <span>-{{ number_format($order->discount, 0, ',', '.') }}₫</span>
+                                </div>
+                            @endif
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <strong>Tổng cộng:</strong>
+                                <strong class="text-danger">{{ number_format($order->total, 0, ',', '.') }}₫</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

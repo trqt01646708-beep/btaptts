@@ -1,49 +1,153 @@
-@extends('layouts.admin')
+@extends('admin.layouts.app')
 
-@section('title', 'Chỉnh sửa người dùng')
-@section('header', 'Chỉnh sửa người dùng')
+@section('title', 'Sửa người dùng')
+@section('page-title', 'Sửa người dùng')
+
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('admin.users.index') }}">Người dùng</a></li>
+    <li class="breadcrumb-item active">Sửa</li>
+@endsection
 
 @section('content')
-<div class="row">
-    <div class="col-md-12">
-        <div class="card card-warning">
-            <form action="{{ route('admin.users.update', $user->id) }}" method="POST">
-                @csrf
-                @method('PUT')
-                <div class="card-body">
-                    <div class="form-group">
-                        <label for="name">Họ tên</label>
-                        <input type="text" name="name" class="form-control" id="name" value="{{ $user->name }}" required>
+    <form action="{{ route('admin.users.update', $user->id) }}" method="POST" enctype="multipart/form-data">
+        @csrf
+        @method('PUT')
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Thông tin người dùng</h3>
                     </div>
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" name="email" class="form-control" id="email" value="{{ $user->email }}" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Mật khẩu (để trống nếu không muốn đổi)</label>
-                        <input type="password" name="password" class="form-control" id="password">
-                    </div>
-                    <div class="form-group">
-                        <label>Vai trò</label>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="name">Họ tên <span class="text-danger">*</span></label>
+                            <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" 
+                                   value="{{ old('name', $user->name) }}" required>
+                            @error('name')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email <span class="text-danger">*</span></label>
+                            <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror" 
+                                   value="{{ old('email', $user->email) }}" required>
+                            @error('email')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+
                         <div class="row">
-                            @foreach($roles as $role)
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="roles[]" value="{{ $role->id }}" 
-                                        {{ $user->roles->contains($role->id) ? 'checked' : '' }}>
-                                    <label class="form-check-label">{{ $role->name }}</label>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="password">Mật khẩu mới</label>
+                                    <input type="password" name="password" id="password" 
+                                           class="form-control @error('password') is-invalid @enderror">
+                                    <small class="text-muted">Để trống nếu không muốn đổi mật khẩu</small>
+                                    @error('password')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             </div>
-                            @endforeach
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="password_confirmation">Xác nhận mật khẩu mới</label>
+                                    <input type="password" name="password_confirmation" id="password_confirmation" 
+                                           class="form-control">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone">Số điện thoại</label>
+                            <input type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" 
+                                   value="{{ old('phone', $user->phone) }}">
+                            @error('phone')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address">Địa chỉ</label>
+                            <textarea name="address" id="address" rows="3" 
+                                      class="form-control @error('address') is-invalid @enderror">{{ old('address', $user->address) }}</textarea>
+                            @error('address')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
                         </div>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <button type="submit" class="btn btn-warning">Cập nhật</button>
-                    <a href="{{ route('admin.users.index') }}" class="btn btn-default">Hủy</a>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Vai trò & Ảnh đại diện</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="avatar">Ảnh đại diện</label>
+                            @if($user->avatar)
+                                <div class="mb-2 text-center">
+                                    <img src="{{ asset('storage/' . $user->avatar) }}" class="img-thumbnail rounded-circle" style="max-height: 150px;">
+                                </div>
+                            @endif
+                            <div class="custom-file">
+                                <input type="file" name="avatar" id="avatar" class="custom-file-input" accept="image/*">
+                                <label class="custom-file-label" for="avatar">Chọn ảnh mới</label>
+                            </div>
+                            <div id="avatar-preview" class="mt-2"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Vai trò <span class="text-danger">*</span></label>
+                            @error('roles')
+                                <div class="text-danger small mb-2">{{ $message }}</div>
+                            @enderror
+                            @foreach($roles as $role)
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" name="roles[]" value="{{ $role->id }}" 
+                                           class="custom-control-input" id="role_{{ $role->id }}"
+                                           {{ in_array($role->id, old('roles', $user->roles->pluck('id')->toArray())) ? 'checked' : '' }}>
+                                    <label class="custom-control-label" for="role_{{ $role->id }}">
+                                        {{ $role->display_name ?? $role->name }}
+                                        @if($role->description)
+                                            <br><small class="text-muted">{{ $role->description }}</small>
+                                        @endif
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i> Cập nhật
+                        </button>
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times mr-1"></i> Hủy
+                        </a>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
-</div>
+    </form>
 @endsection
+
+@push('scripts')
+<script>
+    document.getElementById('avatar').addEventListener('change', function(e) {
+        var fileName = e.target.files[0].name;
+        var label = e.target.nextElementSibling;
+        label.textContent = fileName;
+
+        var preview = document.getElementById('avatar-preview');
+        var file = e.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = '<img src="' + e.target.result + '" class="img-fluid img-thumbnail rounded-circle" style="max-height: 150px;">';
+        }
+        reader.readAsDataURL(file);
+    });
+</script>
+@endpush

@@ -7,18 +7,17 @@ use Illuminate\Foundation\Configuration\Middleware;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Đăng ký middleware aliases
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
+            'jwt' => \App\Http\Middleware\JwtMiddleware::class,
         ]);
-
-        $middleware->redirectTo(
-            guests: '/login',
-            users: '/',
-        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

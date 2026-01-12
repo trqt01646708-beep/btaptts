@@ -1,58 +1,134 @@
-@extends('layouts.admin')
+@extends('admin.layouts.app')
 
-@section('title', 'Chỉnh sửa bài viết')
-@section('header', 'Chỉnh sửa bài viết')
+@section('title', 'Sửa bài viết')
+@section('page-title', 'Sửa bài viết')
+
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('admin.posts.index') }}">Bài viết</a></li>
+    <li class="breadcrumb-item active">Sửa</li>
+@endsection
 
 @section('content')
-<div class="row">
-    <div class="col-md-12">
-        <div class="card card-warning">
-            <form action="{{ route('admin.posts.update', $post->id) }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                @method('PUT')
-                <div class="card-body">
-                    <div class="form-group">
-                        <label for="name">Tiêu đề</label>
-                        <input type="text" name="name" class="form-control" id="name" value="{{ $post->name }}" required>
+    <form action="{{ route('admin.posts.update', $post->id) }}" method="POST" enctype="multipart/form-data">
+        @csrf
+        @method('PUT')
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Thông tin bài viết</h3>
                     </div>
-                    <div class="form-group">
-                        <label for="image">Hình ảnh</label>
-                        @if($post->image)
-                            <div class="mb-2">
-                                <img src="{{ asset($post->image) }}" width="100" alt="">
-                            </div>
-                        @endif
-                        <div class="input-group">
-                            <div class="custom-file">
-                                <input type="file" name="image" class="custom-file-input" id="image">
-                                <label class="custom-file-label" for="image">Chọn tệp</label>
-                            </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="title">Tiêu đề <span class="text-danger">*</span></label>
+                            <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" 
+                                   value="{{ old('title', $post->title) }}" required>
+                            @error('title')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="excerpt">Trích dẫn <span class="text-danger">*</span></label>
+                            <textarea name="excerpt" id="excerpt" rows="3" 
+                                      class="form-control @error('excerpt') is-invalid @enderror" required>{{ old('excerpt', $post->excerpt) }}</textarea>
+                            @error('excerpt')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="content">Nội dung</label>
+                            <textarea name="content" id="content" rows="10" 
+                                      class="form-control @error('content') is-invalid @enderror">{{ old('content', $post->content) }}</textarea>
+                            @error('content')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="description">Mô tả ngắn</label>
-                        <textarea name="description" class="form-control" id="description" rows="3">{{ $post->description }}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="content">Nội dung</label>
-                        <textarea name="content" class="form-control" id="content" rows="10" required>{{ $post->content }}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="status">Trạng thái</label>
-                        <select name="status" id="status" class="form-control">
-                            <option value="active" {{ $post->status == 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="inactive" {{ $post->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                        </select>
-                    </div>
                 </div>
-                <!-- /.card-body -->
+            </div>
 
-                <div class="card-footer">
-                    <button type="submit" class="btn btn-warning">Cập nhật</button>
-                    <a href="{{ route('admin.posts.index') }}" class="btn btn-default">Hủy</a>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Tùy chọn</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="featured_image">Ảnh đại diện</label>
+                            @if($post->featured_image)
+                                <div class="mb-2">
+                                    <img src="{{ asset('storage/' . $post->featured_image) }}" class="img-fluid img-thumbnail" style="max-height: 150px;">
+                                </div>
+                            @endif
+                            <div class="custom-file">
+                                <input type="file" name="featured_image" id="featured_image" 
+                                       class="custom-file-input @error('featured_image') is-invalid @enderror" accept="image/*">
+                                <label class="custom-file-label" for="featured_image">Chọn file mới</label>
+                            </div>
+                            @error('featured_image')
+                                <span class="text-danger small">{{ $message }}</span>
+                            @enderror
+                            <div id="featured-image-preview" class="mt-2"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="categories">Danh mục</label>
+                            <select name="categories[]" id="categories" class="form-control select2" multiple>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->id }}" 
+                                        {{ in_array($category->id, old('categories', $post->categories->pluck('id')->toArray())) ? 'selected' : '' }}>
+                                        {{ $category->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status">Trạng thái <span class="text-danger">*</span></label>
+                            <select name="status" id="status" class="form-control" required>
+                                <option value="draft" {{ old('status', $post->status) == 'draft' ? 'selected' : '' }}>Bản nháp</option>
+                                <option value="published" {{ old('status', $post->status) == 'published' ? 'selected' : '' }}>Đã xuất bản</option>
+                                <option value="archived" {{ old('status', $post->status) == 'archived' ? 'selected' : '' }}>Lưu trữ</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="published_at">Ngày xuất bản</label>
+                            <input type="datetime-local" name="published_at" id="published_at" class="form-control" 
+                                   value="{{ old('published_at', $post->published_at ? $post->published_at->format('Y-m-d\TH:i') : '') }}">
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i> Cập nhật
+                        </button>
+                        <a href="{{ route('admin.posts.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times mr-1"></i> Hủy
+                        </a>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
-</div>
+    </form>
 @endsection
+
+@push('scripts')
+<script>
+    document.querySelector('.custom-file-input').addEventListener('change', function(e) {
+        var fileName = e.target.files[0].name;
+        var label = e.target.nextElementSibling;
+        label.textContent = fileName;
+
+        var preview = document.getElementById('featured-image-preview');
+        var file = e.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = '<img src="' + e.target.result + '" class="img-fluid img-thumbnail" style="max-height: 150px;">';
+        }
+        reader.readAsDataURL(file);
+    });
+</script>
+@endpush

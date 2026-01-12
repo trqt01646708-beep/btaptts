@@ -2,122 +2,69 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\CartItem;
-use App\Models\User;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\OrderPlaced;
+use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function history()
+    /**
+     * Lịch sử đơn hàng
+     */
+    public function index(Request $request)
     {
-        $orders = Order::where('user_id', Auth::id())->latest()->paginate(10);
-        return view('orders.history', compact('orders'));
-    }
+        $query = Order::where('user_id', auth()->id())
+            ->with('items');
 
-    public function show($id)
-    {
-        $query = Order::query();
-        // If not admin, only show own orders
-        if (!Auth::user()->hasRole('admin')) {
-            $query->where('user_id', Auth::id());
-        }
-        
-        $order = $query->with('orderItems.product')->findOrFail($id);
-        return view('orders.show', compact('order'));
-    }
-
-    public function checkout()
-    {
-        // For authenticated users, we get cart from DB
-        $dbCart = CartItem::where('user_id', Auth::id())->with('product')->get();
-        
-        if($dbCart->isEmpty()) {
-            return redirect()->route('home')->with('error', 'Giỏ hàng của bạn đang trống.');
+        // Lọc theo trạng thái
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
         }
 
-        $cart = [];
-        foreach ($dbCart as $item) {
-            $cart[$item->product_id] = [
-                "name" => $item->product->name,
-                "quantity" => $item->quantity,
-                "price" => $item->product->sale_price ?? $item->product->regular_price,
-                "image" => $item->product->image
-            ];
-        }
+        $orders = $query->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->query());
 
-        return view('orders.checkout', compact('cart'));
+        return view('frontend.orders.index', compact('orders'));
     }
 
-    public function placeOrder(Request $request)
+    /**
+     * Chi tiết đơn hàng
+     */
+    public function show($orderNumber)
     {
-        $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email',
-            'phone' => 'required|string',
-            'address' => 'required|string',
+        $order = Order::where('order_number', $orderNumber)
+            ->where('user_id', auth()->id())
+            ->with('items')
+            ->firstOrFail();
+
+        return view('frontend.orders.show', compact('order'));
+    }
+
+    /**
+     * Hủy đơn hàng
+     */
+    public function cancel($orderNumber)
+    {
+        $order = Order::where('order_number', $orderNumber)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        // Chỉ cho hủy đơn hàng ở trạng thái pending hoặc confirmed
+        if (!in_array($order->status, ['pending', 'confirmed'])) {
+            return redirect()->back()->with('error', 'Không thể hủy đơn hàng ở trạng thái này');
+        }
+
+        $order->update([
+            'status' => 'cancelled'
         ]);
 
-        $dbCart = CartItem::where('user_id', Auth::id())->with('product')->get();
-        
-        if($dbCart->isEmpty()) {
-            return redirect()->route('home');
-        }
-
-        $total = 0;
-        foreach($dbCart as $item) {
-            $price = $item->product->sale_price ?? $item->product->regular_price;
-            $total += $price * $item->quantity;
-        }
-
-        $order = Order::create([
-            'user_id' => Auth::id(),
-            'customer_name' => $request->name,
-            'customer_email' => $request->email,
-            'customer_phone' => $request->phone,
-            'customer_address' => $request->address,
-            'total_amount' => $total,
-            'status' => 'pending'
-        ]);
-
-        foreach($dbCart as $item) {
-            OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $item->product_id,
-                'product_name' => $item->product->name,
-                'quantity' => $item->quantity,
-                'price' => $item->product->sale_price ?? $item->product->regular_price
-            ]);
-            
-            // Optional: Reduce product quantity
-            $item->product->decrement('quantity', $item->quantity);
-        }
-
-        // Clear DB cart
-        CartItem::where('user_id', Auth::id())->delete();
-
-        // Send Email
-        try {
-            // To Customer (Email from form)
-            Mail::to($request->email)->send(new OrderPlaced($order));
-            
-            // To specific recipient requested
-            Mail::to('trqt01646708@gmail.com')->send(new OrderPlaced($order));
-            
-            // To site admin
-            $admin = User::whereHas('roles', function($q){ $q->where('name', 'admin'); })->first();
-            if ($admin) {
-                Mail::to($admin->email)->send(new OrderPlaced($order));
+        // Hoàn lại tồn kho
+        foreach ($order->items as $item) {
+            if ($item->product && $item->product->stock_quantity !== null) {
+                $item->product->increment('stock_quantity', $item->quantity);
             }
-
-        } catch (\Exception $e) {
-            // Log error if needed: \Log::error("Mail failed: " . $e->getMessage());
         }
 
-        return redirect()->route('orders.history')->with('success', 'Đơn hàng của bạn đã được đặt thành công!');
+        return redirect()->back()->with('success', 'Đã hủy đơn hàng thành công');
     }
 }

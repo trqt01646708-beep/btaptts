@@ -1,81 +1,140 @@
-@extends('layouts.admin')
+@extends('admin.layouts.app')
 
-@section('title', 'Quản lý Sản phẩm')
-@section('header', 'Danh sách Sản phẩm')
+@section('title', 'Quản lý sản phẩm')
+@section('page-title', 'Quản lý sản phẩm')
+
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active">Sản phẩm</li>
+@endsection
 
 @section('content')
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-box me-2"></i>Sản phẩm</h5>
-        <a href="{{ route('admin.products.create') }}" class="btn btn-primary rounded-pill px-4">
-            <i class="fas fa-plus me-1"></i> Thêm sản phẩm mới
-        </a>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 text-center">
-                <thead class="bg-light text-secondary">
-                    <tr>
-                        <th width="80">ID</th>
-                        <th width="100">Ảnh</th>
-                        <th class="text-start">Tên sản phẩm</th>
-                        <th>Giá gốc</th>
-                        <th>Giá giảm</th>
-                        <th>Số lượng</th>
-                        <th>Trạng thái</th>
-                        <th width="150">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($products as $product)
-                    <tr>
-                        <td>#{{ $product->id }}</td>
-                        <td>
-                            @if($product->image)
-                                <img src="{{ asset($product->image) }}" width="50" class="rounded shadow-sm">
-                            @else
-                                <span class="badge bg-secondary">No img</span>
-                            @endif
-                        </td>
-                        <td class="text-start fs-6 fw-bold text-dark">{{ $product->name }}</td>
-                        <td class="text-muted">{{ number_format($product->regular_price) }}đ</td>
-                        <td class="text-danger fw-bold">
-                            {{ $product->sale_price ? number_format($product->sale_price).'đ' : '-' }}
-                        </td>
-                        <td>
-                            <span class="badge {{ $product->quantity > 5 ? 'bg-success' : 'bg-warning' }} px-3 py-2 rounded-pill">
-                                {{ $product->quantity }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge {{ $product->status == 'active' ? 'bg-success' : 'bg-danger' }} px-3 py-2 rounded-pill">
-                                {{ $product->status == 'active' ? 'Đang bán' : 'Ngừng bán' }}
-                            </span>
-                        </td>
-                        <td>
-                            <div class="btn-group">
-                                <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-outline-info btn-sm">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Danh sách sản phẩm</h3>
+            <div class="card-tools">
+                <a href="{{ route('admin.products.create') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus mr-1"></i> Thêm sản phẩm
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Filters -->
+            <form action="{{ route('admin.products.index') }}" method="GET" class="mb-4">
+                <div class="row">
+                    <div class="col-md-3">
+                        <input type="text" name="search" class="form-control" placeholder="Tìm kiếm..." value="{{ request('search') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <select name="status" class="form-control">
+                            <option value="">-- Trạng thái --</option>
+                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Hoạt động</option>
+                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Không hoạt động</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="category_id" class="form-control">
+                            <option value="">-- Danh mục --</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" name="min_price" class="form-control" placeholder="Giá từ" value="{{ request('min_price') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" name="max_price" class="form-control" placeholder="Giá đến" value="{{ request('max_price') }}">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th width="50">ID</th>
+                            <th width="80">Ảnh</th>
+                            <th>Tên sản phẩm</th>
+                            <th>Giá</th>
+                            <th>Tồn kho</th>
+                            <th width="100">Trạng thái</th>
+                            <th width="150">Ngày tạo</th>
+                            <th width="120">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($products as $product)
+                        <tr>
+                            <td>{{ $product->id }}</td>
+                            <td>
+                                @if($product->image)
+                                    <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" width="60" height="60" class="img-thumbnail">
+                                @else
+                                    <img src="https://via.placeholder.com/60" alt="No image" width="60" height="60" class="img-thumbnail">
+                                @endif
+                            </td>
+                            <td>
+                                <strong>{{ $product->name }}</strong>
+                                <br><small class="text-muted">{{ Str::limit($product->description, 50) }}</small>
+                            </td>
+                            <td>
+                                @if($product->sale_price)
+                                    <span class="text-danger">{{ number_format($product->sale_price) }}đ</span>
+                                    <br><small class="text-muted"><del>{{ number_format($product->regular_price) }}đ</del></small>
+                                @else
+                                    {{ number_format($product->regular_price) }}đ
+                                @endif
+                            </td>
+                            <td>
+                                @if($product->stock_quantity > 10)
+                                    <span class="badge badge-success">{{ $product->stock_quantity }}</span>
+                                @elseif($product->stock_quantity > 0)
+                                    <span class="badge badge-warning">{{ $product->stock_quantity }}</span>
+                                @else
+                                    <span class="badge badge-danger">Hết hàng</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($product->status == 'active')
+                                    <span class="badge badge-success">Hoạt động</span>
+                                @else
+                                    <span class="badge badge-secondary">Không hoạt động</span>
+                                @endif
+                            </td>
+                            <td>{{ $product->created_at->format('d/m/Y H:i') }}</td>
+                            <td>
+                                <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-info btn-sm" title="Sửa">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa?')">
+                                <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Xóa">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="8" class="text-center">Không có sản phẩm nào</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="mt-3">
+                {{ $products->links() }}
+            </div>
         </div>
     </div>
-    <div class="card-footer bg-white border-top-0 py-3">
-        <div class="d-flex justify-content-center">
-            {{ $products->links() }}
-        </div>
-    </div>
-</div>
 @endsection
