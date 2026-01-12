@@ -1,0 +1,17 @@
+Total Users: 14
+ID: 1 | Email: test@example.com | Roles: []
+ID: 2 | Email: test1768204023@example.com | Roles: []
+ID: 3 | Email: test1768204108@example.com | Roles: []
+ID: 4 | Email: test1768204169@example.com | Roles: []
+ID: 5 | Email: test1768204198@example.com | Roles: []
+ID: 6 | Email: test1768204239@example.com | Roles: []
+ID: 7 | Email: test1768204265@example.com | Roles: []
+ID: 8 | Email: test1768204299@example.com | Roles: []
+ID: 9 | Email: test1768204333@example.com | Roles: []
+ID: 10 | Email: test1768204366@example.com | Roles: []
+ID: 11 | Email: test1768204428@example.com | Roles: []
+ID: 12 | Email: john@example.com | Roles: []
+ID: 13 | Email: trqt01646708@gmail.com | Roles: []
+ID: 14 | Email: sadsdsa@gmail.com | Roles: []
+
+Available Roles:
