@@ -119,10 +119,17 @@
                         <div class="product-card">
                             <div class="product-image">
                                 <a href="{{ route('products.show', $product->slug) }}" style="text-decoration: none;">
-                                    @if($product->image)
-                                        <img src="{{ $product->image }}" alt="{{ $product->name }}">
+                                    @if($product->image && strpos($product->image, 'http') === 0)
+                                        <img src="{{ $product->image }}" alt="{{ $product->name }}" style="width: 100%; height: 250px; object-fit: cover;">
+                                    @elseif($product->image)
+                                        <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" style="width: 100%; height: 250px; object-fit: cover;">
                                     @else
-                                        <img src="https://via.placeholder.com/300x200" alt="{{ $product->name }}">
+                                        <div style="width: 100%; height: 250px; background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%); display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                                            <div style="text-align: center; color: #2563eb;">
+                                                <i class="fas fa-image" style="font-size: 3rem; margin-bottom: 10px;"></i>
+                                                <p style="margin: 0; font-weight: 600;">Không có ảnh</p>
+                                            </div>
+                                        </div>
                                     @endif
                                 </a>
                                 @if($product->sale_price && $product->regular_price > $product->sale_price)
@@ -165,9 +172,6 @@
                     {{ $products->links() }}
                 </div>
             </div>
-        </div>
-    </div>
-@endsection
         </div>
     </div>
 @endsection

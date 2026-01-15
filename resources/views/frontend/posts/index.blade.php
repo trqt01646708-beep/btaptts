@@ -34,9 +34,6 @@
                             </div>
                             <div class="post-info">
                                 <div class="post-meta">
-                                    @if($post->categories->count() > 0)
-                                        <span class="badge bg-primary me-2">{{ $post->categories->first()->name }}</span>
-                                    @endif
                                     <i class="fas fa-calendar me-1"></i> {{ $post->published_at ? $post->published_at->format('d/m/Y') : $post->created_at->format('d/m/Y') }}
                                 </div>
                                 <a href="{{ route('posts.show', $post->slug) }}" class="text-decoration-none">
@@ -91,9 +88,9 @@
                         <ul class="list-unstyled mb-0">
                             @foreach($categories as $category)
                             <li class="mb-2">
-                                <a href="{{ route('posts.index', ['category' => $category->slug]) }}" class="text-decoration-none text-dark">
+                                <a href="{{ route('posts.index') }}" class="text-decoration-none text-dark">
                                     <i class="fas fa-chevron-right me-2 text-primary"></i>
-                                    {{ $category->name }} <span class="text-muted">({{ $category->posts_count }})</span>
+                                    {{ $category->name }}
                                 </a>
                             </li>
                             @endforeach

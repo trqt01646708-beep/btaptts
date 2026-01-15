@@ -35,7 +35,8 @@ class CartController extends Controller
                 'quantity' => 'required|integer|min:1'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            if ($request->expectsJson() || $request->ajax()) {
+            // Luôn trả về JSON nếu là request JSON hoặc có X-Requested-With header
+            if ($request->expectsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Dữ liệu không hợp lệ',
@@ -93,7 +94,8 @@ class CartController extends Controller
 
             $cartCount = $cart->items()->sum('quantity');
 
-            if ($request->ajax()) {
+            // Luôn trả về JSON nếu có X-Requested-With header
+            if ($request->header('X-Requested-With') === 'XMLHttpRequest' || $request->ajax()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Đã thêm sản phẩm vào giỏ hàng',
@@ -103,7 +105,8 @@ class CartController extends Controller
 
             return redirect()->back()->with('success', 'Đã thêm sản phẩm vào giỏ hàng');
         } catch (\Exception $e) {
-            if ($request->expectsJson() || $request->ajax()) {
+            // Luôn trả về JSON nếu là request JSON hoặc có X-Requested-With header
+            if ($request->expectsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Có lỗi xảy ra: ' . $e->getMessage()

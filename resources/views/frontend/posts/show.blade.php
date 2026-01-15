@@ -30,14 +30,6 @@
                         
                         <div class="post-meta text-muted mb-4">
                             <span class="me-3"><i class="fas fa-calendar me-1"></i> {{ $post->published_at ? $post->published_at->format('d/m/Y H:i') : $post->created_at->format('d/m/Y H:i') }}</span>
-                            @if($post->categories->count() > 0)
-                            <span>
-                                <i class="fas fa-folder me-1"></i>
-                                @foreach($post->categories as $category)
-                                    <a href="{{ route('posts.index', ['category' => $category->slug]) }}" class="text-decoration-none">{{ $category->name }}</a>{{ !$loop->last ? ', ' : '' }}
-                                @endforeach
-                            </span>
-                            @endif
                         </div>
 
                         @if($post->excerpt)

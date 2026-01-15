@@ -3,241 +3,186 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Category;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
     /**
-     * Display a listing of products
+     * Danh sách sản phẩm
      */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::latest()->paginate(10);
-        return view('product.index', compact('products'));
-    }
+        $query = Product::where('status', 'published');
 
-    /**
-     * Show the form for creating a new product
-     */
-    public function create()
-    {
-        return view('product.create');
-    }
-
-    /**
-     * Store a newly created product
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
-
-        $product = new Product();
-        $product->title = $request->title;
-        $product->description = $request->description;
-        $product->price = $request->price;
-
-        // Handle multiple image uploads
-        if ($request->hasFile('images')) {
-            $images = $request->file('images');
-            $firstImage = $images[0];
-
-            // Generate unique slug filename
-            $slug = Str::slug($request->title);
-            $timestamp = time();
-            $extension = $firstImage->getClientOriginalExtension();
-            $filename = $slug . '-' . $timestamp . '.' . $extension;
-
-            // Save original image
-            $imagePath = $firstImage->storeAs('uploads', $filename, 'public');
-            $product->image = $imagePath;
-
-            // Create thumbnail
-            $thumbnailPath = $this->createThumbnail($firstImage, $slug, $timestamp, $extension);
-            $product->thumbnail = $thumbnailPath;
+        // Tìm kiếm
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
         }
 
-        $product->save();
-
-        return redirect()->route('products.index')->with('success', 'Product created successfully!');
-    }
-
-    /**
-     * Display the specified product
-     */
-    public function show($id)
-    {
-        $product = Product::findOrFail($id);
-        return view('product.show', compact('product'));
-    }
-
-    /**
-     * Show the form for editing the specified product
-     */
-    public function edit($id)
-    {
-        $product = Product::findOrFail($id);
-        return view('product.edit', compact('product'));
-    }
-
-    /**
-     * Update the specified product
-     */
-    public function update(Request $request, $id)
-    {
-        $product = Product::findOrFail($id);
-
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
-
-        $product->title = $request->title;
-        $product->description = $request->description;
-        $product->price = $request->price;
-
-        // Handle image update
-        if ($request->hasFile('images')) {
-            // Delete old images
-            if ($product->image) {
-                Storage::disk('public')->delete($product->image);
-            }
-            if ($product->thumbnail) {
-                Storage::disk('public')->delete($product->thumbnail);
-            }
-
-            $images = $request->file('images');
-            $firstImage = $images[0];
-
-            // Generate unique slug filename
-            $slug = Str::slug($request->title);
-            $timestamp = time();
-            $extension = $firstImage->getClientOriginalExtension();
-            $filename = $slug . '-' . $timestamp . '.' . $extension;
-
-            // Save original image
-            $imagePath = $firstImage->storeAs('uploads', $filename, 'public');
-            $product->image = $imagePath;
-
-            // Create thumbnail
-            $thumbnailPath = $this->createThumbnail($firstImage, $slug, $timestamp, $extension);
-            $product->thumbnail = $thumbnailPath;
+        // Lọc theo danh mục
+        if ($request->has('category') && $request->category) {
+            $query->where('category_id', $request->category);
         }
 
-        $product->save();
-
-        return redirect()->route('products.index')->with('success', 'Product updated successfully!');
-    }
-
-    /**
-     * Remove the specified product
-     */
-    public function destroy($id)
-    {
-        $product = Product::findOrFail($id);
-        $product->delete(); // Images will be deleted automatically via model event
-
-        return redirect()->route('products.index')->with('success', 'Product deleted successfully!');
-    }
-
-    /**
-     * Create thumbnail from uploaded image
-     */
-    private function createThumbnail($file, $slug, $timestamp, $extension)
-    {
-        $thumbnailFilename = $slug . '-' . $timestamp . '-thumb.' . $extension;
-        $thumbnailPath = 'uploads/thumbnails/' . $thumbnailFilename;
-
-        // Get the full path to save thumbnail
-        $fullPath = storage_path('app/public/' . $thumbnailPath);
-
-        // Create thumbnails directory if it doesn't exist
-        if (!file_exists(dirname($fullPath))) {
-            mkdir(dirname($fullPath), 0755, true);
+        // Lọc theo giá
+        if ($request->has('min_price') && $request->min_price) {
+            $query->where(function($q) use ($request) {
+                $q->where('sale_price', '>=', $request->min_price)
+                  ->orWhere(function($q2) use ($request) {
+                      $q2->whereNull('sale_price')
+                         ->where('regular_price', '>=', $request->min_price);
+                  });
+            });
         }
 
-        // Get image info
-        $imageInfo = getimagesize($file->getRealPath());
-        $mimeType = $imageInfo['mime'];
+        if ($request->has('max_price') && $request->max_price) {
+            $query->where(function($q) use ($request) {
+                $q->where('sale_price', '<=', $request->max_price)
+                  ->orWhere(function($q2) use ($request) {
+                      $q2->whereNull('sale_price')
+                         ->where('regular_price', '<=', $request->max_price);
+                  });
+            });
+        }
 
-        // Create image resource based on type
-        switch ($mimeType) {
-            case 'image/jpeg':
-                if (!function_exists('imagecreatefromjpeg')) return null;
-                $source = imagecreatefromjpeg($file->getRealPath());
+        // Sắp xếp
+        $sortBy = $request->get('sort', 'newest');
+        switch ($sortBy) {
+            case 'price_asc':
+                $query->orderByRaw('IFNULL(sale_price, regular_price) ASC');
                 break;
-            case 'image/png':
-                if (!function_exists('imagecreatefrompng')) return null;
-                $source = imagecreatefrompng($file->getRealPath());
+            case 'price_desc':
+                $query->orderByRaw('IFNULL(sale_price, regular_price) DESC');
                 break;
-            case 'image/gif':
-                if (!function_exists('imagecreatefromgif')) return null;
-                $source = imagecreatefromgif($file->getRealPath());
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'popular':
+                $query->orderBy('views', 'desc');
                 break;
             default:
-                return null;
+                $query->orderBy('created_at', 'desc');
         }
 
-        // Get original dimensions
-        $width = imagesx($source);
-        $height = imagesy($source);
+        $products = $query->paginate(12)->appends($request->query());
 
-        // Calculate thumbnail dimensions (300x300)
-        $thumbWidth = 300;
-        $thumbHeight = 300;
+        // Lấy danh mục
+        $categories = Category::where('status', 'active')
+            ->withCount(['products' => function($q) {
+                $q->where('status', 'published');
+            }])
+            ->having('products_count', '>', 0)
+            ->get();
 
-        // Calculate scaling
-        $scale = min($thumbWidth / $width, $thumbHeight / $height);
-        $newWidth = floor($width * $scale);
-        $newHeight = floor($height * $scale);
+        return view('products.index', compact('products', 'categories'));
+    }
 
-        // Create thumbnail
-        $thumb = imagecreatetruecolor($thumbWidth, $thumbHeight);
+    /**
+     * Chi tiết sản phẩm
+     */
+    public function show($slug)
+    {
+        $product = Product::where('slug', $slug)
+            ->where('status', 'published')
+            ->firstOrFail();
 
-        // Preserve transparency for PNG and GIF
-        if ($mimeType == 'image/png' || $mimeType == 'image/gif') {
-            imagealphablending($thumb, false);
-            imagesavealpha($thumb, true);
-            $transparent = imagecolorallocatealpha($thumb, 255, 255, 255, 127);
-            imagefilledrectangle($thumb, 0, 0, $thumbWidth, $thumbHeight, $transparent);
-        } else {
-            // White background for JPEG
-            $white = imagecolorallocate($thumb, 255, 255, 255);
-            imagefilledrectangle($thumb, 0, 0, $thumbWidth, $thumbHeight, $white);
+        // Tăng lượt xem
+        $product->increment('views');
+
+        // Sản phẩm liên quan
+        $relatedProducts = Product::where('id', '!=', $product->id)
+            ->where('status', 'published')
+            ->where('category_id', $product->category_id)
+            ->inRandomOrder()
+            ->take(4)
+            ->get();
+
+        // Sản phẩm mới nhất
+        $latestProducts = Product::where('status', 'published')
+            ->where('id', '!=', $product->id)
+            ->orderBy('created_at', 'desc')
+            ->take(4)
+            ->get();
+
+        return view('products.show', compact('product', 'relatedProducts', 'latestProducts'));
+    }
+
+    /**
+     * Sản phẩm theo danh mục
+     */
+    public function category($slug, Request $request)
+    {
+        $category = Category::where('slug', $slug)
+            ->where('status', 'active')
+            ->firstOrFail();
+
+        $query = Product::where('status', 'published')
+            ->where('category_id', $category->id);
+
+        // Sắp xếp
+        $sortBy = $request->get('sort', 'newest');
+        switch ($sortBy) {
+            case 'price_asc':
+                $query->orderByRaw('IFNULL(sale_price, regular_price) ASC');
+                break;
+            case 'price_desc':
+                $query->orderByRaw('IFNULL(sale_price, regular_price) DESC');
+                break;
+            case 'popular':
+                $query->orderBy('views', 'desc');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
         }
 
-        // Center the image
-        $x = floor(($thumbWidth - $newWidth) / 2);
-        $y = floor(($thumbHeight - $newHeight) / 2);
+        $products = $query->paginate(12)->appends($request->query());
 
-        // Resize and copy
-        imagecopyresampled($thumb, $source, $x, $y, 0, 0, $newWidth, $newHeight, $width, $height);
+        // Lấy danh mục
+        $categories = Category::where('status', 'active')
+            ->withCount(['products' => function($q) {
+                $q->where('status', 'published');
+            }])
+            ->having('products_count', '>', 0)
+            ->get();
 
-        // Save thumbnail
-        switch ($mimeType) {
-            case 'image/jpeg':
-                imagejpeg($thumb, $fullPath, 90);
+        return view('products.category', compact('products', 'category', 'categories'));
+    }
+
+    /**
+     * Sản phẩm giảm giá
+     */
+    public function sale(Request $request)
+    {
+        $query = Product::where('status', 'published')
+            ->whereNotNull('sale_price')
+            ->where('sale_price', '>', 0);
+
+        // Sắp xếp
+        $sortBy = $request->get('sort', 'newest');
+        switch ($sortBy) {
+            case 'price_asc':
+                $query->orderBy('sale_price', 'asc');
                 break;
-            case 'image/png':
-                imagepng($thumb, $fullPath, 9);
+            case 'price_desc':
+                $query->orderBy('sale_price', 'desc');
                 break;
-            case 'image/gif':
-                imagegif($thumb, $fullPath);
+            case 'discount':
+                $query->orderByRaw('((regular_price - sale_price) / regular_price * 100) DESC');
                 break;
+            default:
+                $query->orderBy('created_at', 'desc');
         }
 
-        // Free memory
-        imagedestroy($source);
-        imagedestroy($thumb);
+        $products = $query->paginate(12)->appends($request->query());
 
-        return $thumbnailPath;
+        return view('products.sale', compact('products'));
     }
 }

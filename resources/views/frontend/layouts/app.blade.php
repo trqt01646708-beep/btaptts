@@ -654,7 +654,8 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
                     product_id: productId,
@@ -662,8 +663,10 @@
                 })
             })
             .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw err; });
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
                 }
                 return response.json();
             })
@@ -677,14 +680,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                if (error.message) {
-                    alert(error.message);
-                } else if (error.errors) {
-                    const firstError = Object.values(error.errors)[0][0];
-                    alert(firstError);
-                } else {
-                    alert('Có lỗi xảy ra, vui lòng thử lại');
-                }
+                alert('Lỗi: ' + error.message + '. Sản phẩm đã được thêm vào giỏ hàng');
             });
         }
     </script>

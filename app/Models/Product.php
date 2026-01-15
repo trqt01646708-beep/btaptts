@@ -3,37 +3,57 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Product extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'title',
-        'description',
-        'price',
+        'category_id',
+        'name',
+        'slug',
         'image',
-        'thumbnail'
+        'thumbnail',
+        'regular_price',
+        'sale_price',
+        'description',
+        'content',
+        'stock_quantity',
+        'status',
+        'published_at',
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
+        'published_at' => 'datetime',
+        'regular_price' => 'decimal:2',
+        'sale_price' => 'decimal:2',
     ];
 
-    /**
-     * Boot method to handle model events
-     */
-    protected static function boot()
+    // Relationships
+    public function category()
     {
-        parent::boot();
+        return $this->belongsTo(Category::class);
+    }
 
-        // Delete images when product is deleted
-        static::deleting(function ($product) {
-            if ($product->image) {
-                Storage::disk('public')->delete($product->image);
-            }
-            if ($product->thumbnail) {
-                Storage::disk('public')->delete($product->thumbnail);
-            }
-        });
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function cartItems()
+    {
+        return $this->hasMany(CartItem::class);
+    }
+
+    // Helper methods
+    public function getPrice()
+    {
+        return $this->sale_price ?? $this->regular_price;
+    }
+
+    public function isOnSale()
+    {
+        return $this->sale_price !== null && $this->sale_price < $this->regular_price;
     }
 }

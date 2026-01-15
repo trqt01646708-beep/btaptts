@@ -83,12 +83,29 @@
                                     Thanh toán khi nhận hàng (COD)
                                 </label>
                             </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="payment_method" id="vnpay" value="vnpay">
+                                <label class="form-check-label" for="vnpay">
+                                    <i class="fas fa-credit-card me-2 text-danger"></i>
+                                    Thanh toán qua VNPay (ATM/VISA/MasterCard/QR)
+                                </label>
+                            </div>
+                            
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="payment_method" id="bank" value="bank">
                                 <label class="form-check-label" for="bank">
                                     <i class="fas fa-university me-2 text-primary"></i>
                                     Chuyển khoản ngân hàng
                                 </label>
+                            </div>
+                            
+                            <div id="vnpay-info" class="mt-3 p-3 rounded" style="display: none; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #fca5a5;">
+                                <p class="mb-2"><strong><i class="fas fa-info-circle me-2"></i>Thanh toán VNPay:</strong></p>
+                                <p class="mb-1">✓ Hỗ trợ thẻ ATM nội địa</p>
+                                <p class="mb-1">✓ Thẻ tín dụng Visa/MasterCard/JCB</p>
+                                <p class="mb-1">✓ Quét mã QR thanh toán</p>
+                                <p class="mb-0 text-danger"><small><i class="fas fa-shield-alt me-1"></i>Giao dịch an toàn, bảo mật cao</small></p>
                             </div>
                             
                             <div id="bank-info" class="mt-3 p-3 bg-light rounded" style="display: none;">
@@ -113,10 +130,14 @@
                                 @foreach($cartItems as $item)
                                 <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
                                     <div class="d-flex align-items-center">
-                                        @if($item->product && $item->product->image)
-                                            <img src="{{ asset('storage/' . $item->product->image) }}" alt="" width="50" class="me-2 rounded">
+                                        @if($item->product && $item->product->image && strpos($item->product->image, 'http') === 0)
+                                            <img src="{{ $item->product->image }}" alt="" width="50" height="50" class="me-2 rounded" style="object-fit: cover;">
+                                        @elseif($item->product && $item->product->image)
+                                            <img src="{{ asset('storage/' . $item->product->image) }}" alt="" width="50" height="50" class="me-2 rounded" style="object-fit: cover;">
                                         @else
-                                            <img src="https://via.placeholder.com/50" alt="" width="50" class="me-2 rounded">
+                                            <div width="50" height="50" class="me-2 rounded" style="width: 50px; height: 50px; background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%); display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-image" style="color: #2563eb; font-size: 0.8rem;"></i>
+                                            </div>
                                         @endif
                                         <div>
                                             <span class="d-block" style="font-size: 0.9rem;">{{ $item->product->name ?? 'Sản phẩm' }}</span>
@@ -162,10 +183,17 @@
     document.querySelectorAll('input[name="payment_method"]').forEach(function(radio) {
         radio.addEventListener('change', function() {
             var bankInfo = document.getElementById('bank-info');
+            var vnpayInfo = document.getElementById('vnpay-info');
+            
+            // Ẩn tất cả thông tin
+            bankInfo.style.display = 'none';
+            vnpayInfo.style.display = 'none';
+            
+            // Hiển thị thông tin tương ứng
             if (this.value === 'bank') {
                 bankInfo.style.display = 'block';
-            } else {
-                bankInfo.style.display = 'none';
+            } else if (this.value === 'vnpay') {
+                vnpayInfo.style.display = 'block';
             }
         });
     });

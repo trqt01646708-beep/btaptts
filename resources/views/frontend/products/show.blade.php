@@ -22,10 +22,17 @@
             <div class="col-md-5 mb-4">
                 <div class="product-gallery">
                     <div class="main-image mb-3">
-                        @if($product->image)
-                            <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" class="img-fluid rounded">
+                        @if($product->image && strpos($product->image, 'http') === 0)
+                            <img src="{{ $product->image }}" alt="{{ $product->name }}" class="img-fluid rounded" style="max-height: 500px; object-fit: cover;">
+                        @elseif($product->image)
+                            <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" class="img-fluid rounded" style="max-height: 500px; object-fit: cover;">
                         @else
-                            <img src="https://via.placeholder.com/500x500" alt="{{ $product->name }}" class="img-fluid rounded">
+                            <div class="w-100 rounded" style="height: 500px; background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%); display: flex; align-items: center; justify-content: center;">
+                                <div style="text-align: center; color: #2563eb;">
+                                    <i class="fas fa-image" style="font-size: 4rem; margin-bottom: 15px;"></i>
+                                    <p style="margin: 0; font-weight: 600; font-size: 1.1rem;">Không có ảnh</p>
+                                </div>
+                            </div>
                         @endif
                     </div>
                 </div>

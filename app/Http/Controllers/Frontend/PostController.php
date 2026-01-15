@@ -14,23 +14,20 @@ class PostController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Post::with('categories')
-            ->where('status', 'published')
-            ->where('published_at', '<=', now());
+        $query = Post::where('status', 'published');
+        
+        // Kiểm tra published_at là NULL hoặc <= now()
+        $query->where(function($q) {
+            $q->whereNull('published_at')
+              ->orWhere('published_at', '<=', now());
+        });
 
         // Tìm kiếm
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
-
-        // Lọc theo danh mục
-        if ($request->has('category') && $request->category) {
-            $query->whereHas('categories', function($q) use ($request) {
-                $q->where('categories.slug', $request->category);
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('content', 'like', "%{$search}%");
             });
         }
 
@@ -39,13 +36,7 @@ class PostController extends Controller
             ->appends($request->query());
 
         // Lấy danh mục
-        $categories = Category::where('status', 'active')
-            ->withCount(['posts' => function($q) {
-                $q->where('status', 'published')
-                  ->where('published_at', '<=', now());
-            }])
-            ->having('posts_count', '>', 0)
-            ->get();
+        $categories = Category::where('status', 'active')->get();
 
         // Bài viết phổ biến (sắp xếp theo ngày đăng gần nhất)
         $popularPosts = Post::where('status', 'published')
@@ -62,21 +53,18 @@ class PostController extends Controller
      */
     public function show($slug)
     {
-        $post = Post::with('categories')
-            ->where('slug', $slug)
+        $post = Post::where('slug', $slug)
             ->where('status', 'published')
-            ->where('published_at', '<=', now())
+            ->where(function($q) {
+                $q->whereNull('published_at')
+                  ->orWhere('published_at', '<=', now());
+            })
             ->firstOrFail();
 
         // Bài viết liên quan
-        $relatedPosts = Post::with('categories')
-            ->where('id', '!=', $post->id)
+        $relatedPosts = Post::where('id', '!=', $post->id)
             ->where('status', 'published')
             ->where('published_at', '<=', now())
-            ->whereHas('categories', function($q) use ($post) {
-                $categoryIds = $post->categories->pluck('id');
-                $q->whereIn('categories.id', $categoryIds);
-            })
             ->orderBy('published_at', 'desc')
             ->take(4)
             ->get();
@@ -101,23 +89,16 @@ class PostController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
-        $posts = Post::with('categories')
-            ->where('status', 'published')
-            ->where('published_at', '<=', now())
-            ->whereHas('categories', function($q) use ($category) {
-                $q->where('categories.id', $category->id);
+        $posts = Post::where('status', 'published')
+            ->where(function($q) {
+                $q->whereNull('published_at')
+                  ->orWhere('published_at', '<=', now());
             })
             ->orderBy('published_at', 'desc')
             ->paginate(12);
 
         // Lấy danh mục
-        $categories = Category::where('status', 'active')
-            ->withCount(['posts' => function($q) {
-                $q->where('status', 'published')
-                  ->where('published_at', '<=', now());
-            }])
-            ->having('posts_count', '>', 0)
-            ->get();
+        $categories = Category::where('status', 'active')->get();
 
         return view('frontend.posts.category', compact('posts', 'category', 'categories'));
     }
