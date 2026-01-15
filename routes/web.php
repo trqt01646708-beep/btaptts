@@ -1,14 +1,23 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductController;
+use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\DashboardController;
 
-// Product Routes
-Route::get('/', [ProductController::class, 'index'])->name('products.index');
-Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
-Route::post('/products', [ProductController::class, 'store'])->name('products.store');
-Route::get('/products/{id}', [ProductController::class, 'show'])->name('products.show');
-Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->name('products.edit');
-Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
-Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
+Route::get('/', function () {
+    return view('welcome');
+});
+
+// Registration routes
+Route::get('/register', [RegistrationController::class, 'showForm'])->name('register.form');
+Route::post('/register', [RegistrationController::class, 'register'])->name('register');
+
+// Job logs routes
+Route::get('/job-logs', [RegistrationController::class, 'showLogs'])->name('job-logs');
+
+// Dashboard routes
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/dashboard/stats', [DashboardController::class, 'stats'])->name('dashboard.stats');
+Route::post('/dashboard/clear-failed', [DashboardController::class, 'clearFailed'])->name('dashboard.clear-failed');
+Route::post('/dashboard/retry/{id}', [DashboardController::class, 'retryFailed'])->name('dashboard.retry');
+Route::delete('/dashboard/delete-user/{email}', [DashboardController::class, 'deleteUser'])->name('dashboard.delete-user');
