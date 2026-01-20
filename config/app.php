@@ -1,5 +1,5 @@
 <?php
-
+//php artisan reverb:start
 return [
 
     /*

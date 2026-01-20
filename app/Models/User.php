@@ -2,28 +2,59 @@
 
 namespace App\Models;
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
+    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
-        'phone',
-        'address',
-        'avatar',
+        'role',
     ];
 
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function sentMessages()
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function receivedMessages()
+    {
+        return $this->hasMany(Message::class, 'receiver_id');
+    }
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -31,58 +62,4 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-
-    // Relationships
-    public function roles()
-    {
-        return $this->belongsToMany(Role::class, 'role_user');
-    }
-
-    public function orders()
-    {
-        return $this->hasMany(Order::class);
-    }
-
-    public function cart()
-    {
-        return $this->hasOne(Cart::class);
-    }
-
-    // Helper methods
-    public function hasRole($role)
-    {
-        return $this->roles()->where('name', $role)->exists();
-    }
-
-    public function isAdmin()
-    {
-        return $this->hasRole('admin');
-    }
-
-    /**
-     * Check if user has a specific permission
-     */
-    public function hasPermission($permission)
-    {
-        foreach ($this->roles as $role) {
-            if ($role->permissions()->where('name', $permission)->exists()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Get all permissions through roles
-     */
-    public function getAllPermissions()
-    {
-        $permissions = collect();
-        foreach ($this->roles as $role) {
-            $permissions = $permissions->merge($role->permissions);
-        }
-        return $permissions->unique('id');
-    }
-
-
 }
